@@ -6,4 +6,6 @@ public interface UserDAO extends GenericDAO<User> {
     boolean isUserWithEmailPresent(String email);
 
     boolean isUserWithUsernamePresent(String username);
+
+    User getUserByUsername(String username);
 }

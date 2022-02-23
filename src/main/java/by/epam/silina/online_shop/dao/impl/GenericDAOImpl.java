@@ -1,6 +1,6 @@
 package by.epam.silina.online_shop.dao.impl;
 
-import by.epam.silina.online_shop.dao.DAOIdentifier;
+import by.epam.silina.online_shop.config.DAOIdentifier;
 import by.epam.silina.online_shop.dao.GenericDAO;
 import by.epam.silina.online_shop.datasource.InMemoryDataSource;
 
@@ -32,7 +32,7 @@ public class GenericDAOImpl<T extends DAOIdentifier> implements GenericDAO<T> {
     @Override
     public void save(T t) {
         incrementMaxId();
-        //calling method from DAOIdentificator
+        //calling method from DAOIdentifier
         t.setId(maxId);
         map.put(maxId, t);
     }

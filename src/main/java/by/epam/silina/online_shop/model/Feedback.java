@@ -5,9 +5,9 @@ import lombok.Data;
 import java.time.LocalDate;
 
 @Data
-public class Review {
+public class Feedback {
     private Long id;
-    private String feedback;
+    private String text;
     private LocalDate date;
     private boolean isActive;
     private User user;

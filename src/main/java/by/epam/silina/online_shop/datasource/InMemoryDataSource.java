@@ -1,6 +1,6 @@
 package by.epam.silina.online_shop.datasource;
 
-import by.epam.silina.online_shop.dao.DAOIdentifier;
+import by.epam.silina.online_shop.config.DAOIdentifier;
 import by.epam.silina.online_shop.model.Item;
 import by.epam.silina.online_shop.model.User;
 import lombok.AccessLevel;

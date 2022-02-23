@@ -1,21 +1,27 @@
 package by.epam.silina.online_shop.service.impl;
 
-import by.epam.silina.online_shop.model.User;
 import by.epam.silina.online_shop.dao.UserDAO;
 import by.epam.silina.online_shop.dao.impl.UserDAOImpl;
+import by.epam.silina.online_shop.exception.UserServiceException;
+import by.epam.silina.online_shop.model.Role;
+import by.epam.silina.online_shop.model.RoleEnum;
+import by.epam.silina.online_shop.model.User;
 import by.epam.silina.online_shop.service.UserService;
 import by.epam.silina.online_shop.util.ConsoleReader;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.Scanner;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
+@Slf4j
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class UserServiceImpl implements UserService {
     private static final UserServiceImpl instance = new UserServiceImpl();
     private final UserDAO userDAO = UserDAOImpl.getInstance();
+
     private final Scanner scanner = ConsoleReader.getInstance().getScanner();
 
     public static UserServiceImpl getInstance() {
@@ -34,28 +40,41 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public void register() {
-        User user = User.builder()
+        var user = User.builder()
                 .uniqueNumber(UUID.randomUUID())
-/*              todo add role
-                .role(Role.builder().build())
-*/
-                .email(getEmailFromConsole())
-                .username(getUsernameFromConsole())
-                .password(getPasswordFromConsole())
+                //todo add role
+                .role(Role.builder().roleEnum(RoleEnum.ADMIN).build())
+                .email(getEmailFromConsoleWithValidation())
+                .username(getUsernameFromConsoleWithValidation())
+                .password(getPasswordFromConsoleWithValidation())
                 .build();
         userDAO.save(user);
+        log.info("User with id={} has been registered.", user.getId());
     }
 
-    public String getEmailFromConsole() {
+    @Override
+    public Role login() {
+        var username = getUserNameFromConsole();
+        var user = userDAO.getUserByUsername(username);
+        if (user == null) {
+            log.error("User with username={} doesn't exist", username);
+            throw new UserServiceException("User with username=" + username + " doesn't exist");
+        } else {
+            checkUserPassword(user);
+            return user.getRole();
+        }
+    }
+
+    public String getEmailFromConsoleWithValidation() {
         System.out.println("Write email:");
 
         String email = scanner.nextLine();
         if (userDAO.isUserWithEmailPresent(email)) {
             System.out.println("This email has been already registered.");
-            getEmailFromConsole();
+            getEmailFromConsoleWithValidation();
         } else if (!isEmailValid(email)) {
             System.out.println("Email should be valid.");
-            getEmailFromConsole();
+            getEmailFromConsoleWithValidation();
         }
         return email;
     }
@@ -67,28 +86,44 @@ public class UserServiceImpl implements UserService {
                 .matches();
     }
 
-    private String getUsernameFromConsole() {
-        System.out.println("Write username:");
-
-        String username = scanner.nextLine();
+    private String getUsernameFromConsoleWithValidation() {
+        var username = getUserNameFromConsole();
         if (userDAO.isUserWithUsernamePresent(username)) {
             System.out.println("This username has been already registered.");
-            getUsernameFromConsole();
+            getUsernameFromConsoleWithValidation();
         } else if (username.length() > 16) {
             System.out.println("Username should be less than 16 symbols.");
-            getUsernameFromConsole();
+            getUsernameFromConsoleWithValidation();
         }
         return username;
     }
 
-    private String getPasswordFromConsole() {
-        System.out.println("Write password:");
-
-        String password = scanner.nextLine();
+    private String getPasswordFromConsoleWithValidation() {
+        var password = getPasswordFromConsole();
         if (password.length() < 8 || password.length() > 20) {
             System.out.println("Password length should be more than 8 and less than 20");
-            getPasswordFromConsole();
+            getPasswordFromConsoleWithValidation();
         }
         return password;
+    }
+
+    private String getUserNameFromConsole() {
+        System.out.println("Write username:");
+        return scanner.nextLine();
+    }
+
+    private String getPasswordFromConsole() {
+        System.out.println("Write password:");
+        return scanner.nextLine();
+    }
+
+    private void checkUserPassword(User user) {
+        var password = getPasswordFromConsole();
+        if (user.getPassword().equals(password)) {
+            System.out.println("Hello, " + user.getUsername() + "!");
+        } else {
+            System.out.println("Password is not correct.");
+            checkUserPassword(user);
+        }
     }
 }

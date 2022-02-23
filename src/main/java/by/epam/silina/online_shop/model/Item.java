@@ -1,6 +1,6 @@
 package by.epam.silina.online_shop.model;
 
-import by.epam.silina.online_shop.dao.DAOIdentifier;
+import by.epam.silina.online_shop.config.DAOIdentifier;
 import lombok.Data;
 
 import java.math.BigDecimal;
