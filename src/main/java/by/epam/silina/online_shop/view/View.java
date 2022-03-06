@@ -3,7 +3,7 @@ package by.epam.silina.online_shop.view;
 import by.epam.silina.online_shop.config.MenuIdentifier;
 import by.epam.silina.online_shop.controller.MainController;
 import by.epam.silina.online_shop.util.ConsoleReader;
-import by.epam.silina.online_shop.util.EndAppUtil;
+import by.epam.silina.online_shop.view.menu.InitialMenuEnum;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -18,8 +18,7 @@ public class View {
     private static View instance;
     private final Scanner scanner = ConsoleReader.getInstance().getScanner();
     private final MainController mainController = MainController.getInstance();
-    private final EndAppUtil endAppUtil = EndAppUtil.getInstance();
-
+    private final ExitView exitView = ExitView.getInstance();
 
     public static View getInstance() {
         if (instance == null) {
@@ -36,7 +35,7 @@ public class View {
             currentMenuEnum = parseAndSendRequest(currentMenuEnum, request);
             showMenu(currentMenuEnum);
         }
-        exitFromApp();
+        exitView.exitFromApp();
     }
 
     public <T extends MenuIdentifier> void showMenu(Class<T> menuParamEnum) {
@@ -53,19 +52,12 @@ public class View {
             MenuIdentifier menuEnumConstant = menuEnumConstants[requestOption - 1];
             return mainController.handleRequest(menuEnumConstant);
         } catch (Exception e) {
-            showWarringMessage();
-            //todo return?
+            showWarningMessage();
             return menuParamEnum;
         }
     }
 
-    public void exitFromApp() {
-        System.out.println("See you.");
-        scanner.close();
-        endAppUtil.endApp();
-    }
-
-    public void showWarringMessage() {
+    public void showWarningMessage() {
         System.out.println("Please, choose right option and type only its number.");
     }
 }

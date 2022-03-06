@@ -2,128 +2,119 @@ package by.epam.silina.online_shop.service.impl;
 
 import by.epam.silina.online_shop.dao.UserDAO;
 import by.epam.silina.online_shop.dao.impl.UserDAOImpl;
-import by.epam.silina.online_shop.exception.UserServiceException;
-import by.epam.silina.online_shop.model.Role;
-import by.epam.silina.online_shop.model.RoleEnum;
 import by.epam.silina.online_shop.model.User;
+import by.epam.silina.online_shop.service.RoleService;
 import by.epam.silina.online_shop.service.UserService;
-import by.epam.silina.online_shop.util.ConsoleReader;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.Scanner;
+import java.util.List;
 import java.util.UUID;
-import java.util.regex.Pattern;
 
+import static by.epam.silina.online_shop.config.RoleConstant.CLIENT;
+
+/**
+ * Service for user logic responsible for processing user data from dao layer.
+ */
 @Slf4j
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class UserServiceImpl implements UserService {
-    private static final UserServiceImpl instance = new UserServiceImpl();
+    private static final UserService instance = new UserServiceImpl();
     private final UserDAO userDAO = UserDAOImpl.getInstance();
+    private final RoleService roleService = RoleServiceImpl.getInstance();
 
-    private final Scanner scanner = ConsoleReader.getInstance().getScanner();
-
-    public static UserServiceImpl getInstance() {
+    public static UserService getInstance() {
         return instance;
     }
 
+
+    /**
+     * Requests data of all user objects from user dao and returns list of them.
+     *
+     * @return List<User>
+     */
     @Override
-    public void showAllUsers() {
-        var map = userDAO.getAll();
-        if (map.size() == 0) {
-            System.out.println("There are no registered users");
-        } else {
-            map.values().forEach(System.out::println);
-        }
+    public List<User> getAllUsers() {
+        return userDAO.getAll();
     }
 
+    /**
+     * Creates user object from list of parameters for registration.
+     * Checks if there is a user with username in datasource and saves created user.
+     * Returns boolean value whether user with passed parameters has been saved to datasource.
+     *
+     * @param paramsForRegistration list of parameters for registration
+     */
     @Override
-    public void register() {
+    public boolean registerUser(List<String> paramsForRegistration) {
+        var email = paramsForRegistration.get(0);
+        var username = paramsForRegistration.get(1);
+        if (userDAO.isUserWithEmailPresent(email) || userDAO.isUserWithUsernamePresent(username)) {
+            return false;
+        }
+        var password = paramsForRegistration.get(2);
         var user = User.builder()
                 .uniqueNumber(UUID.randomUUID())
-                //todo add role
-                .role(Role.builder().roleEnum(RoleEnum.ADMIN).build())
-                .email(getEmailFromConsoleWithValidation())
-                .username(getUsernameFromConsoleWithValidation())
-                .password(getPasswordFromConsoleWithValidation())
+                .role(roleService.getRoleByName(CLIENT))
+                .email(email)
+                .username(username)
+                .password(password)
                 .build();
         userDAO.save(user);
         log.info("User with id={} has been registered.", user.getId());
+        return true;
     }
 
+    /**
+     * Requests data of user from user dao using passed parameters for login.
+     * Checks if there is a user with passed parameters in datasource and returns this user.
+     *
+     * @param paramsForLogin list of parameters for login
+     * @return User
+     */
     @Override
-    public Role login() {
-        var username = getUserNameFromConsole();
+    public User login(List<String> paramsForLogin) {
+        var username = paramsForLogin.get(0);
         var user = userDAO.getUserByUsername(username);
         if (user == null) {
-            log.error("User with username={} doesn't exist", username);
-            throw new UserServiceException("User with username=" + username + " doesn't exist");
+            return null;
         } else {
-            checkUserPassword(user);
-            return user.getRole();
+            var password = paramsForLogin.get(1);
+            if (!isUserPasswordCorrect(user, password)) {
+                return null;
+            }
+            return user;
         }
     }
 
-    public String getEmailFromConsoleWithValidation() {
-        System.out.println("Write email:");
-
-        String email = scanner.nextLine();
-        if (userDAO.isUserWithEmailPresent(email)) {
-            System.out.println("This email has been already registered.");
-            getEmailFromConsoleWithValidation();
-        } else if (!isEmailValid(email)) {
-            System.out.println("Email should be valid.");
-            getEmailFromConsoleWithValidation();
-        }
-        return email;
+    /**
+     * Requests number of users from user dao using getEntityCount() method and returns this number.
+     *
+     * @return Long
+     */
+    @Override
+    public Long getUserCount() {
+        return userDAO.getEntityCount();
     }
 
-    private boolean isEmailValid(String email) {
-        String regexPattern = "^(?=.{1,64}@)[A-Za-z0-9_-]+(\\.[A-Za-z0-9_-]+)*@[^-][A-Za-z0-9-]+(\\.[A-Za-z0-9-]+)*(\\.[A-Za-z]{2,})$";
-        return Pattern.compile(regexPattern)
-                .matcher(email)
-                .matches();
-    }
-
-    private String getUsernameFromConsoleWithValidation() {
-        var username = getUserNameFromConsole();
-        if (userDAO.isUserWithUsernamePresent(username)) {
-            System.out.println("This username has been already registered.");
-            getUsernameFromConsoleWithValidation();
-        } else if (username.length() > 16) {
-            System.out.println("Username should be less than 16 symbols.");
-            getUsernameFromConsoleWithValidation();
-        }
-        return username;
-    }
-
-    private String getPasswordFromConsoleWithValidation() {
-        var password = getPasswordFromConsole();
-        if (password.length() < 8 || password.length() > 20) {
-            System.out.println("Password length should be more than 8 and less than 20");
-            getPasswordFromConsoleWithValidation();
-        }
-        return password;
-    }
-
-    private String getUserNameFromConsole() {
-        System.out.println("Write username:");
-        return scanner.nextLine();
-    }
-
-    private String getPasswordFromConsole() {
-        System.out.println("Write password:");
-        return scanner.nextLine();
-    }
-
-    private void checkUserPassword(User user) {
-        var password = getPasswordFromConsole();
-        if (user.getPassword().equals(password)) {
-            System.out.println("Hello, " + user.getUsername() + "!");
+    /**
+     * Requests user info passed user object, processes it and returns string of processed user info.
+     *
+     * @param user user object
+     * @return String
+     */
+    @Override
+    public String getUserInfo(User user) {
+        if (user == null) {
+            log.error("User cannot be null");
+            return "";
         } else {
-            System.out.println("Password is not correct.");
-            checkUserPassword(user);
+            return "User info. username: " + user.getUsername() + ", email: " + user.getEmail();
         }
+    }
+
+    private boolean isUserPasswordCorrect(User user, String password) {
+        return user.getPassword().equals(password);
     }
 }

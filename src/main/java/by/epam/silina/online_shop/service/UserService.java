@@ -1,12 +1,17 @@
 package by.epam.silina.online_shop.service;
 
-import by.epam.silina.online_shop.model.Role;
+import by.epam.silina.online_shop.model.User;
+
+import java.util.List;
 
 public interface UserService {
-    void register();
+    boolean registerUser(List<String> paramsForRegistration);
 
-    //todo return Role? or User?
-    Role login();
+    User login(List<String> paramsForLogin);
 
-    void showAllUsers();
+    String getUserInfo(User user);
+
+    List<User> getAllUsers();
+
+    Long getUserCount();
 }

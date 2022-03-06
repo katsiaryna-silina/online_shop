@@ -1,10 +1,10 @@
-package by.epam.silina.online_shop.view;
+package by.epam.silina.online_shop.view.menu;
 
 import by.epam.silina.online_shop.config.MenuIdentifier;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
-import static by.epam.silina.online_shop.view.constant.MenuConstant.*;
+import static by.epam.silina.online_shop.config.MenuConstant.*;
 
 @Getter
 @AllArgsConstructor
